@@ -7,3 +7,5 @@ gem 'trollop'
 gem 'highline'
 
 gem 'mechanize'
+
+#gemspec

@@ -1,0 +1,70 @@
+#!/usr/bin/env ruby
+
+require File.expand_path('../lib/gitorious-merge-request', File.dirname(__FILE__))
+
+SubCommands = %w(new show rm)
+global_opts = Trollop::options do
+  version "gitorious-merge-request 1.0.0"
+  banner <<-EOS
+Manage Gitorious' merge requests
+
+Usage:
+  gitorious-merge-request command [options]
+  List of available commands: #{SubCommands.join ' '}.
+  Use 'command --help' for command usage.
+EOS
+  stop_on SubCommands
+end
+
+def login_opts
+  opt :email, "Email for login", :short => 'e', :type => String
+end
+def code_opts
+  opt :code, "project/repo:id (e.g. noosfero/noosfero:248)", :type => String
+end
+
+def login_dies opts
+  Trollop::die :email, "must exist" unless opts[:email]
+end
+def code_dies opts
+  Trollop::die :code, "must exist" unless opts[:code]
+end
+
+cmd = ARGV.shift # get the subcommand
+cmd_opts =
+  case cmd
+  when 'new'
+    Trollop::options do
+      banner <<-EOS
+new: create new merge request
+
+Usage:
+  gitorious-merge-request new [options]
+  where [options] are:
+EOS
+      login_opts
+      opt :summary, "Summary", :short => 's', :type => String
+      opt :proposal, "Proposal", :short => 'p', :type => String
+      opt :forked_repo, "Forked repo id (e.g. ~brauliobo/noosfero/brauliobos-noosfero)", :short => 'f', :type => String
+      opt :forked_branch, "Forked branch", :short => 'a', :type => String
+      opt :target_repo, "Target repo id (e.g. noosfero/noosfero)", :short => 't', :type => String
+      opt :target_branch, "Target branch", :short => 'b', :type => String
+    end
+  when 'show'
+    Trollop::options do
+      code_opts
+    end
+  when 'rm'
+    Trollop::options do
+      login_opts
+      code_opts
+    end
+  else
+    Trollop::die "use one of the subcommands: #{SubCommands.join ' '}"
+  end
+
+include GitoriousMergeRequest
+
+send "cmd_#{cmd}", cmd_opts
+
+
