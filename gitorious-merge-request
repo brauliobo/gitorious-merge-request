@@ -46,7 +46,7 @@ EOS
     end
   when 'show'
     Trollop::options do
-      opt :code, "Repository and merge request id (e.g. noosfero/noosfero:248)", :type => String
+      opt :code, "repository:id (e.g. noosfero/noosfero:248)", :type => String
     end
   else
     Trollop::die "use one of the subcommands: #{SubCommands.join ' '}"
@@ -107,6 +107,7 @@ def cmd_new opts
     form = page.form_with :id => 'new_merge_request'
 
     form.set_fields 'merge_request[summary]' => @summary
+    form.set_fields 'merge_request[proposal]' => @proposal
 
     @authenticity_token = form.fields.find{ |f| f.name == 'authenticity_token' }.value
 
@@ -127,7 +128,8 @@ def cmd_new opts
     form.add_field! 'merge_request[ending_commit]', commit
 
     page = form.submit
-    pp page.content
+    puts "\n"
+    cmd_show_for page
   end
 
   login
@@ -143,22 +145,27 @@ def cmd_show opts
 
   page = @mechanize.get "https://gitorious.org/#{repo}/merge_requests/#{id}"
 
-  raise "can't grab summary" unless page.parser.css('#content h1').first.text =~ /[^#]+ #\d+: (.+)/
-  summary = $1
-  proposal = page.parser.css('.proposal').first.text
+  cmd_show_for page
+end
+
+def cmd_show_for page
+  raise "can't grab summary" unless page.parser.css('#content h1').first.text.strip =~ /[^#]+ #(\d+): (.+)/
+  id, summary = $1, $2
+  proposal = page.parser.css('.proposal').first.text.strip
 
   lis = page.parser.css('ul.meta li')
   raise "can't get meta content" if lis.empty?
 
   a = lis[0].css('a').last
-  requester = "#{a.text} (http://gitorious.org#{a.attr('href')})"
+  requester = "#{a.text.strip} (http://gitorious.org#{a.attr('href')})"
 
   puts <<-EOS
 Requester: #{requester}
 
+ID: #{id}
 Summary: #{summary}
 Proposal:
-#{proposal.strip}
+#{proposal}
 
 EOS
 end
