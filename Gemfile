@@ -1,11 +1,4 @@
 source :rubygems
 
-gem 'activesupport', :require => 'active_support/all'
+gemspec
 
-gem 'trollop'
-
-gem 'highline'
-
-gem 'mechanize'
-
-#gemspec

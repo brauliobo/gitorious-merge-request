@@ -4,7 +4,7 @@ require File.expand_path('../lib/gitorious-merge-request', File.dirname(__FILE__
 
 SubCommands = %w(new show rm)
 global_opts = Trollop::options do
-  version "gitorious-merge-request 1.0.0"
+  version "gitorious-merge-request #{GitoriousMergeRequest::Version}"
   banner <<-EOS
 Manage Gitorious' merge requests
 

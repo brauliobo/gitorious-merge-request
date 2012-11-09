@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-require File.expand_path('./lib/gitorious-merge-request', File.dirname(__FILE__))
+require File.expand_path('./lib/gitorious-merge-request/version', File.dirname(__FILE__))
 
 Gem::Specification.new do |gem|
   gem.authors       = ["Braulio Bhavamitra"]
@@ -15,4 +15,10 @@ Gem::Specification.new do |gem|
   gem.name          = "gitorious-merge-request"
   gem.require_paths = ["lib"]
   gem.version       = GitoriousMergeRequest::Version
+
+  gem.add_dependency 'activesupport'
+  gem.add_dependency 'trollop'
+  gem.add_dependency 'mechanize'
+  gem.add_dependency 'highline'
+
 end

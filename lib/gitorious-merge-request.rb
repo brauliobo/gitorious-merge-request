@@ -1,13 +1,13 @@
 require 'rubygems'
-ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../../Gemfile', __FILE__)
-require 'bundler/setup'
-Bundler.require
 
+require 'mechanize'
+require 'trollop'
+require 'active_support/all'
 require 'highline/import'
 
-module GitoriousMergeRequest
+require File.expand_path('./gitorious-merge-request/version', File.dirname(__FILE__))
 
-  Version = '1.0.0'
+module GitoriousMergeRequest
 
   MRUrl = "https://gitorious.org/%{repo}/merge_requests/%{id}"
   NewMRUrl = "https://gitorious.org/%{forked_repo}/merge_requests/new"
