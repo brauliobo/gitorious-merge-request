@@ -5,7 +5,7 @@ require 'bundler/setup'
 require 'highline/import'
 Bundler.require
 
-SubCommands = %w(new show)
+SubCommands = %w(new show rm)
 global_opts = Trollop::options do
   version "gitorious-merge-request 1.0.0"
   banner <<-EOS
@@ -21,6 +21,16 @@ end
 
 def login_opts
   opt :email, "Email for login", :short => 'e', :type => String
+end
+def code_opts
+  opt :code, "project/repo:id (e.g. noosfero/noosfero:248)", :type => String
+end
+
+def login_dies opts
+  Trollop::die :email, "must exist" unless opts[:email]
+end
+def code_dies opts
+  Trollop::die :code, "must exist" unless opts[:code]
 end
 
 cmd = ARGV.shift # get the subcommand
@@ -46,13 +56,20 @@ EOS
     end
   when 'show'
     Trollop::options do
-      opt :code, "repository:id (e.g. noosfero/noosfero:248)", :type => String
+      code_opts
+    end
+  when 'rm'
+    Trollop::options do
+      login_opts
+      code_opts
     end
   else
     Trollop::die "use one of the subcommands: #{SubCommands.join ' '}"
   end
 
-def login
+def login opts
+  @email = opts[:email]
+
   password = ask('Password:'){ |q| q.echo = false }
 
   puts 'Login...'
@@ -66,15 +83,18 @@ def login
   raise "Can't login" unless page.content.include?('Logged in successfully')
 end
 
+MRUrl = "https://gitorious.org/%{repo}/merge_requests/%{id}"
+NewMRUrl = "https://gitorious.org/%{forked_repo}/merge_requests/new"
+CommitListUrl = "https://gitorious.org/%{forked_repo}/merge_requests/commit_list"
+
 def cmd_new opts
-  Trollop::die :email, "must exist" unless opts[:email]
+  login_dies opts
   Trollop::die :summary, "must exist" unless opts[:summary]
   Trollop::die :forked, "must exist" unless opts[:forked_repo]
   Trollop::die :forked_branch, "must exist" unless opts[:forked_branch]
   Trollop::die :target, "must exist" unless opts[:target_repo]
   Trollop::die :target_branch, "must exist" unless opts[:target_branch]
 
-  @email = opts[:email]
   @summary = opts[:summary]
   @proposal = opts[:proposal]
   @forked_repo = opts[:forked_repo]
@@ -86,7 +106,7 @@ def cmd_new opts
     forked_repo = @forked_repo.split('/')[1,2].join('/')
 
     puts "Selecting last commit"
-    page = @mechanize.post "https://gitorious.org/#{forked_repo}/merge_requests/commit_list", {
+    page = @mechanize.post CommitListUrl % {:forked_repo => forked_repo}, {
       'authenticity_token' => @authenticity_token,
       'merge_request[target_repository_id]' => target_id, 
       'merge_request[target_branch]' => @target_branch,
@@ -103,7 +123,7 @@ def cmd_new opts
     target_repo = @target_repo.split('/').last
 
     puts "Opening merge request page"
-    page = @mechanize.get "https://gitorious.org/#{forked_repo}/merge_requests/new"
+    page = @mechanize.get NewMRUrl % {:forked_repo => forked_repo}
     form = page.form_with :id => 'new_merge_request'
 
     form.set_fields 'merge_request[summary]' => @summary
@@ -128,22 +148,44 @@ def cmd_new opts
     form.add_field! 'merge_request[ending_commit]', commit
 
     page = form.submit
-    puts "\n"
+    raise "Error while creating merge request" if page.parser.css('.errorExplanation').first
+
+    puts "YOUR NEW MERGE REQUEST\n"
     cmd_show_for page
   end
 
-  login
+  login opts
   merge_request
 end
 
-def cmd_show opts
+def parse_code opts
   @code = opts[:code]
 
   raise "can't parse code" unless @code =~ /(.+):(\d+)/
   repo = $1
   id = $2.to_i
 
-  page = @mechanize.get "https://gitorious.org/#{repo}/merge_requests/#{id}"
+  [repo, id]
+end
+
+def cmd_rm opts
+  login_dies opts
+  code_dies opts
+
+  repo, id = parse_code opts
+
+  login opts
+  page = @mechanize.get MRUrl % {:repo => repo, :id => id}
+  form = page.form_with :action => "/#{repo}/merge_requests/#{id}"
+  page = form.submit
+end
+
+def cmd_show opts
+  code_dies opts
+
+  repo, id = parse_code opts
+
+  page = @mechanize.get MRUrl % {:repo => repo, :id => id}
 
   cmd_show_for page
 end
