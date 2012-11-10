@@ -16,7 +16,7 @@ module GitoriousMergeRequest
   def login opts
     @email = opts[:email]
 
-    password = ask('Password:'){ |q| q.echo = false }
+    password = ask('Password: '){ |q| q.echo = false }
 
     puts 'Login...'
     page = @mechanize.get 'https://gitorious.org/login'
