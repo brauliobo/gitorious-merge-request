@@ -1,2 +1,5 @@
-Gemfile.lock
-pkg
+/Gemfile.lock
+/pkg
+
+*.swp
+*.swo

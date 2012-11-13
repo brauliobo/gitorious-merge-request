@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
-require File.expand_path('../lib/gitorious-merge-request', File.dirname(__FILE__))
+require File.expand_path('../lib/gitorious_merge_request', File.dirname(__FILE__))
 
-SubCommands = %w(new show rm)
+SubCommands = %w(new show rm list checkout diff)
 global_opts = Trollop::options do
   version "gitorious-merge-request #{GitoriousMergeRequest::Version}"
   banner <<-EOS
@@ -20,7 +20,7 @@ def login_opts
   opt :email, "Email for login", :short => 'e', :type => String
 end
 def code_opts
-  opt :code, "project/repo:id (e.g. noosfero/noosfero:248)", :type => String
+  opt :code, "id (using git's origin repo) or project/repo:id (e.g. noosfero/noosfero:248)", :type => String
 end
 
 def login_dies opts
@@ -45,9 +45,9 @@ EOS
       login_opts
       opt :summary, "Summary", :short => 's', :type => String
       opt :proposal, "Proposal", :short => 'p', :type => String
-      opt :forked_repo, "Forked repo id (e.g. ~brauliobo/noosfero/brauliobos-noosfero)", :short => 'f', :type => String
+      opt :forked_repo, "Git remote name OR forked repo id (e.g. ~brauliobo/noosfero/brauliobos-noosfero)", :short => 'f', :type => String
       opt :forked_branch, "Forked branch", :short => 'a', :type => String
-      opt :target_repo, "Target repo id (e.g. noosfero/noosfero)", :short => 't', :type => String
+      opt :target_repo, "Git remote name OR target repo id (e.g. noosfero/noosfero)", :short => 't', :type => String
       opt :target_branch, "Target branch", :short => 'b', :type => String
     end
   when 'show'
@@ -59,12 +59,25 @@ EOS
       login_opts
       code_opts
     end
+  when 'list'
+    Trollop::options do
+      opt :code, "git-remote or project/repo (e.g. noosfero/noosfero)", :type => String
+      opt :status, "Status (open or closed)", :type => String
+    end
+  when 'checkout'
+    Trollop::options do
+      code_opts
+    end
+  when 'diff'
+    Trollop::options do
+      code_opts
+    end
   else
     Trollop::die "use one of the subcommands: #{SubCommands.join ' '}"
   end
 
-include GitoriousMergeRequest
-
-send "cmd_#{cmd}", cmd_opts
+$mech = Mechanize.new
+gmr = GitoriousMergeRequest.new
+gmr.send "cmd_#{cmd}", cmd_opts
 
 
