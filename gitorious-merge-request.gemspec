@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-require File.expand_path('./lib/gitorious-merge-request/version', File.dirname(__FILE__))
+require File.expand_path('./lib/gitorious_merge_request/version', File.dirname(__FILE__))
 
 Gem::Specification.new do |gem|
   gem.authors       = ["Braulio Bhavamitra"]

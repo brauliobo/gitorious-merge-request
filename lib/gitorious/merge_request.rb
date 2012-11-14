@@ -1,18 +1,38 @@
 class Gitorious::MergeRequest
 
-  attr_accessor :repo, :id
+  attr_accessor :id
+  attr_accessor :username
   attr_accessor :proposal, :summary
+  attr_accessor :target_repo, :target_branch
+  attr_accessor :forked_repo, :forked_branch
   attr_accessor :merge_base_sha, :ending_commit
 
+  def initialize *args
+    repo = args[0]
+    if args[1].is_a?(Nokogiri::XML::Node)
+      page = args[1]
+    else
+      id = args[1]
+      page = Nokogiri::HTML $mech.get(Gitorious::MRUrlXml % {:repo => repo, :id => id}).content
+    end
+
+    self.id = page.at("id").content
+    self.summary = page.at("summary").content
+    self.proposal = page.at("proposal").content
+    self.username = page.at("username").content
+    self.target_repo = repo
+    self.target_branch = page.at('target_repository/branch').content
+    self.forked_repo = "#{self.username}/#{page.at('source_repository/name').content}"
+    self.forked_branch = page.at('source_repository/branch').content
+    self.ending_commit = page.at("ending-commit").content
+    version = page.xpath('//versions/version').last
+    self.merge_base_sha = version.at('merge_base_sha').content if version
+  end
+
   def self.list repo, status="Open"
-    page = $mech.get Gitorious::MRListUrl % {:repo => repo, :status => status}
-    page.parser.xpath('//merge-request').map do |node|
-      mr = self.new
-      mr.id = node.at("id").content
-      mr.summary = node.at("summary").content
-      mr.proposal = node.at("proposal").content
-      mr.merge_base_sha =  node.xpath('//versions/version').last.at('merge_base_sha').content
-      mr
+    page = Nokogiri::HTML $mech.get(Gitorious::MRListUrl % {:repo => repo, :status => status}).content
+    page.xpath('//merge-request').map do |node|
+      mr = self.new repo, node
     end
   end
 
@@ -65,31 +85,22 @@ class Gitorious::MergeRequest
     mr = self.new repo, id
   end
 
-  def initialize repo, id
-    page = Nokogiri::HTML $mech.get(Gitorious::MRUrl % {:repo => repo, :id => id}).content
-    self.repo = repo
-    self.id = id
-    self.summary = page.at("summary").content
-    self.proposal = page.at("proposal").content
-    username = page.at("username").content
-    self.target_repo = page.at('target_repository/name').content
-    self.target_branch = page.at('target_repository/branch').content
-    self.ending_commit = page.at("ending-commit").content
-    version = page.xpath('//versions/version').last
-    self.merge_base_sha = version.at('merge_base_sha').content if version
+  def branch
+    "merge-requests/#{self.id}"
   end
 
-  def checkout
-    `git checkout -b merge-requests/#{id} #{self.merge_base_sha}`
-    `git pull #{git.remote} refs/merge-requests/#{self.id}`
+  def checkout remote='origin', options = {}
+    if $current_branch != self.branch
+      Git.branch "-D #{branch}", :quiet => true
+      Git.checkout "-b #{branch} #{self.merge_base_sha}", options
+    end
+    Git.pull "#{remote} refs/#{branch}", :quiet => true
   end
 
-  def diff
-    `git diff #{self.merge_base_sha}`
-  end
-
-  def to_s
-    "#{id}: #{summary.lines.first}"
+  def diff remote='origin'
+    self.checkout remote, :quiet => true
+    Git.checkout $current_branch, :quiet => true
+    Git.diff branch
   end
 
   protected

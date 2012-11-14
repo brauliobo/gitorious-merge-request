@@ -16,18 +16,14 @@ EOS
   stop_on SubCommands
 end
 
+$origin_repo = Gitorious.remote_to_repo 'origin'
+$current_branch = Git.current_branch
+
 def login_opts
   opt :email, "Email for login", :short => 'e', :type => String
 end
 def code_opts
-  opt :code, "id (using git's origin repo) or project/repo:id (e.g. noosfero/noosfero:248)", :type => String
-end
-
-def login_dies opts
-  Trollop::die :email, "must exist" unless opts[:email]
-end
-def code_dies opts
-  Trollop::die :code, "must exist" unless opts[:code]
+  opt :code, "id (using git's origin repository) or remote-name:id or project/repo:id (e.g. noosfero/noosfero:248)", :type => String
 end
 
 cmd = ARGV.shift # get the subcommand
@@ -47,8 +43,10 @@ EOS
       opt :proposal, "Proposal", :short => 'p', :type => String
       opt :forked_repo, "Git remote name OR forked repo id (e.g. ~brauliobo/noosfero/brauliobos-noosfero)", :short => 'f', :type => String
       opt :forked_branch, "Forked branch", :short => 'a', :type => String
-      opt :target_repo, "Git remote name OR target repo id (e.g. noosfero/noosfero)", :short => 't', :type => String
-      opt :target_branch, "Target branch", :short => 'b', :type => String
+      opt :target_repo, "Git remote name OR target repo id (e.g. noosfero/noosfero, defaults to git origin repository)",
+        :short => 't', :type => String, :default => $origin_repo
+      opt :target_branch, "Target branch (defaults to git's current branch)",
+        :short => 'b', :type => String, :default => $current_branch
     end
   when 'show'
     Trollop::options do
@@ -61,7 +59,8 @@ EOS
     end
   when 'list'
     Trollop::options do
-      opt :code, "git-remote or project/repo (e.g. noosfero/noosfero)", :type => String
+      opt :repo, "git-remote (defaults to git origin repository) or project/repo (e.g. noosfero/noosfero)",
+        :short => 'r', :type => String
       opt :status, "Status (open or closed)", :type => String
     end
   when 'checkout'
@@ -76,8 +75,11 @@ EOS
     Trollop::die "use one of the subcommands: #{SubCommands.join ' '}"
   end
 
+#require 'irb'
+#IRB.start
+#exit
+
 $mech = Mechanize.new
 gmr = GitoriousMergeRequest.new
 gmr.send "cmd_#{cmd}", cmd_opts
-
 
