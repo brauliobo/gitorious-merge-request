@@ -42,7 +42,7 @@ EOS
       opt :summary, "Summary", :short => 's', :type => String
       opt :proposal, "Proposal", :short => 'p', :type => String
       opt :forked_repo, "Git remote name OR forked repo id (e.g. ~brauliobo/noosfero/brauliobos-noosfero)", :short => 'f', :type => String
-      opt :forked_branch, "Forked branch", :short => 'a', :type => String
+      opt :forked_branch, "Forked branch OR default to current git branch name", :short => 'a', :type => String
       opt :target_repo, "Git remote name OR target repo id (e.g. noosfero/noosfero, defaults to git origin repository)",
         :short => 't', :type => String, :default => $origin_repo
       opt :target_branch, "Target branch (defaults to git's current branch)",

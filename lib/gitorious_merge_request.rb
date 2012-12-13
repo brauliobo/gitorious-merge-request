@@ -23,6 +23,8 @@ class GitoriousMergeRequest
   end
 
   def cmd_new opts
+    opts[:forked_branch] ||= Git.current_branch
+
     Trollop::die :summary, "must exist" unless opts[:summary]
     Trollop::die :forked, "must exist" unless opts[:forked_repo]
     Trollop::die :forked_branch, "must exist" unless opts[:forked_branch]
